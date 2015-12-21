@@ -1,5 +1,5 @@
 #pragma once
-#include "Nes6502.h"
+#include "Memory.h"
 
 #include <stdint.h>
 
@@ -31,7 +31,7 @@ struct Argument
     uint16_t oopsAddress; // Used for oops page wrap
     bool pageWrap;
 
-    inline uint8_t getValue(State6502& state)
+    inline uint8_t getValue(Memory& memory)
     {
         if (addrMode == IMM || addrMode == ACC)
         {
@@ -39,13 +39,14 @@ struct Argument
         }
 
         // "oops" cycle logic, waste cycle if page boundary crossed
-        if (pageWrap) { state.memory.read(oopsAddress); }
+        if (pageWrap) { memory.read(oopsAddress); }
 
-        return state.memory.read(address);
+        return memory.read(address);
     }
 };
 
-typedef void(*InstrFunc)(State6502&, Argument);
+struct State6502;
+typedef void(*InstrFunc)(State6502&, Memory&, Argument);
 
 InstrFunc getInstrFunc(uint8_t opcode);
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
-#include "Memory.h"
 
+class Bus;
 struct Argument;
 
 struct ConditionCodes6502
@@ -57,9 +57,6 @@ struct State6502
     uint8_t             A;  // Accumulator
     uint8_t             X;  // Index X
     uint8_t             Y;  // Index Y
-
-    // Memory
-    Memory memory;
 };
 
 class Nes6502
@@ -67,13 +64,14 @@ class Nes6502
 public:
     State6502 state;
 
-    Nes6502();
+    Nes6502(Bus& bus);
     ~Nes6502();
 
     void emulate6502();
     void executeOpCode(uint8_t instr[]);
 
 private:
+    Bus& bus;
     Argument obtainArgument(uint8_t instr[]);
     void pageWrap(Argument& arg, uint8_t offset);
 };

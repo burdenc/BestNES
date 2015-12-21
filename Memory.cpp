@@ -36,7 +36,7 @@ std::string Memory::getDebugStream()
     return out;
 }
 
-Memory::Memory() : memory(new uint8_t[MEMORY_SIZE])
+Memory::Memory(Bus& bus) : bus(bus), memory(new uint8_t[MEMORY_SIZE])
 {
 }
 
@@ -49,48 +49,50 @@ Memory::~Memory()
 // TODO: one cycle for each read or write
 // TODO: read initial page on ABSX, ABSY, INDY ops
 //       ex: 0x00FF,X (X = 1) ===> READ 0x0000 (thrown away), READ 0x0100
-void Memory::write(unsigned int index, uint8_t value)
+void Memory::write(uint16_t index, uint8_t value)
 {
     logMemory("WRITE", value, index);
     uint8_t* address = evalAddress(index);
 
     *address = value;
 
-    Bus::nextCycles++;
+    bus.cpuCycle();
 }
 
-uint8_t Memory::read(unsigned int index)
+uint8_t Memory::read(uint16_t index)
 {
     uint8_t* address = evalAddress(index);
 
     logMemory("READ", *address, index);
 
-    Bus::nextCycles++;
+    bus.cpuCycle();
     return *address;
 }
 
-void Memory::push(uint8_t& stackPtr, uint8_t value)
+void Memory::push(uint8_t value)
 {
+    uint8_t& stackPtr = bus.cpuState().SP;
     logMemory("WRITE", value, STACK_OFFSET + stackPtr);
     memory[STACK_OFFSET + stackPtr] = value;
     stackPtr--;
 
-    Bus::nextCycles++;
+    bus.cpuCycle();
 }
 
-uint8_t Memory::pop(uint8_t& stackPtr)
+uint8_t Memory::pop()
 {
+    uint8_t& stackPtr = bus.cpuState().SP;
     uint8_t result = memory[STACK_OFFSET + stackPtr + 1];
     stackPtr++;
 
     logMemory("READ", result, STACK_OFFSET + stackPtr + 1);
 
-    Bus::nextCycles++;
+    bus.cpuCycle();
     return result;
 }
 
 // Evaluate real address based on NES memory mapping
-uint8_t* Memory::evalAddress(unsigned int address)
+uint8_t* Memory::evalAddress(uint16_t address)
 {
     // PRG ROM Redirect
     if (0x8000 <= address && address <= 0xFFFF)

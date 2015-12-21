@@ -17,7 +17,7 @@ void printTestOutput(Memory& mem)
     } while (c != 0);
 }
 
-Nes6502::Nes6502()
+Nes6502::Nes6502(Bus& bus) : bus(bus)
 {
     state.SP = 0xFD;
     state.A = 0;
@@ -32,31 +32,29 @@ Nes6502::~Nes6502()
 
 void Nes6502::emulate6502()
 {
-    /*uint8_t startMSB = state.memory.read(0xFFFD);
-    uint8_t startLSB = state.memory.read(0xFFFC);
+    /*uint8_t startMSB = bus.memory().read(0xFFFD);
+    uint8_t startLSB = bus.memory().read(0xFFFC);
 
     state.PC = (startMSB << 8 | startLSB);*/
     state.PC = 0xC000;
 
     while (1)
     {
-        Bus::nextCycles = 0;
-
         uint8_t instr[3] = {};
-        instr[0] = state.memory.read(state.PC);
-        instr[1] = state.memory.read(state.PC + 1); // Second instruction byte always read
+        instr[0] = bus.memory().read(state.PC);
+        instr[1] = bus.memory().read(state.PC + 1); // Second instruction byte always read
 
         for (int i = 2; i < instructionSize[addressingMode[instr[0]]]; i++)
         {
-            instr[i] = state.memory.read(state.PC + i);
+            instr[i] = bus.memory().read(state.PC + i);
         }
 
         executeOpCode(instr);
-        Bus::cycles += Bus::nextCycles;
+        bus.finalizeCPUInstruction();
 
         // DEBUG OUTPUT
-        // TODO: Centralize to Logging file
-        std::cout << state.memory.getDebugStream();
+        // TODO: Centralize to Logging 
+        std::cout << bus.memory().getDebugStream();
     }
 }
 
@@ -65,7 +63,7 @@ void Nes6502::executeOpCode(uint8_t instr[])
 {
     state.PC += instructionSize[addressingMode[instr[0]]];
     Argument arg = obtainArgument(instr);
-    getInstrFunc(instr[0])(state, arg);
+    getInstrFunc(instr[0])(state, bus.memory(), arg);
 }
 
 Argument Nes6502::obtainArgument(uint8_t instr[])
@@ -96,11 +94,11 @@ Argument Nes6502::obtainArgument(uint8_t instr[])
         arg.address = instr[1];
         break;
     case ZPX:
-        state.memory.read(instr[1]);
+        bus.memory().read(instr[1]);
         arg.address = (instr[1] + state.X) & 0xFF;
         break;
     case ZPY:
-        state.memory.read(instr[1]);
+        bus.memory().read(instr[1]);
         arg.address = (instr[1] + state.Y) & 0xFF;
         break;
     case ABS:
@@ -118,17 +116,17 @@ Argument Nes6502::obtainArgument(uint8_t instr[])
         break;
     case IND:
         arg.address = (uint16_t) instr[2] << 8 | instr[1];
-        arg.address = state.memory.read(arg.address & 0xFF00 | (arg.address + 1) & 0xFF) << 8 |
-                      state.memory.read(arg.address);
+        arg.address = bus.memory().read(arg.address & 0xFF00 | (arg.address + 1) & 0xFF) << 8 |
+                      bus.memory().read(arg.address);
         break;
     case INDX:
-        state.memory.read(instr[1]);
-        arg.address = (uint16_t) state.memory.read((instr[1] + state.X + 1) % 256) << 8 |
-                                 state.memory.read((instr[1] + state.X)     % 256);
+        bus.memory().read(instr[1]);
+        arg.address = (uint16_t) bus.memory().read((instr[1] + state.X + 1) % 256) << 8 |
+                                 bus.memory().read((instr[1] + state.X)     % 256);
         break;
     case INDY:
-        arg.address = (uint16_t) state.memory.read((instr[1] + 1) % 256) << 8 |
-                                 state.memory.read(instr[1]);
+        arg.address = (uint16_t) bus.memory().read((instr[1] + 1) % 256) << 8 |
+                                 bus.memory().read(instr[1]);
         pageWrap(arg, state.Y);
         arg.address += state.Y;
         break;

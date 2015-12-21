@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Nes6502.h"
+#include "Bus.h"
 #include "Game.h"
 #include "SDL.h"
 
@@ -40,8 +40,8 @@ int main(int argc, char *argv[])
     SDL_Log("Loading %s", path.c_str());
     Game::getGame().loadGame(path);
 
-    Nes6502* nes = new Nes6502();
-    nes->emulate6502();
+    Bus bus;
+    bus.runNES();
     std::system("pause");
     return 0;
 }
