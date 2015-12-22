@@ -2,40 +2,6 @@
 #include "Game.h"
 #include "Bus.h"
 
-#include <iomanip>
-
-#include "SDL_log.h"
-
-#define LOG_MEMORY 0
-
-#if defined(DEBUG) && LOG_MEMORY == 1
-#define logMemory(op,value,index) logMemoryDebug(debugStream,op,value,index)
-#else
-#define logMemory(op,value,index) 
-#endif
-
-static std::string toHex(int val, int width)
-{
-    std::stringstream hex;
-    hex << std::setw(width) << std::setfill('0') << std::uppercase << std::hex << val;
-    return hex.str();
-}
-
-void logMemoryDebug(std::stringstream& stream, const char* op, uint8_t value, uint16_t index)
-{
-    stream << std::setw(6)  << ""
-           << std::setw(10) << std::left << op
-           << "$" << toHex(index,4) << " = " << toHex(value,2)
-           << std::endl;
-}
-
-std::string Memory::getDebugStream()
-{
-    std::string out = debugStream.str();
-    debugStream.str("");
-    return out;
-}
-
 Memory::Memory(Bus& bus) : bus(bus), memory(new uint8_t[MEMORY_SIZE])
 {
 }

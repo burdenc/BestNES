@@ -1,6 +1,6 @@
 #include "Bus.h"
 
-Bus::Bus() : busCycles(0), instructionCycles(0), nesmemory(*this), nescpu(*this)
+Bus::Bus() : busCycles(0), instructionCycles(0), nesmemory(*this), nescpu(*this), nesdebug(*this)
 {
 }
 
@@ -27,6 +27,11 @@ Nes6502& Bus::cpu()
 State6502& Bus::cpuState()
 {
     return nescpu.state;
+}
+
+Debug& Bus::debug()
+{
+    return nesdebug;
 }
 
 void Bus::cpuCycle()

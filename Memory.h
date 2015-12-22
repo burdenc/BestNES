@@ -21,15 +21,10 @@ public:
     void push(uint8_t value);
     uint8_t pop();
 
-    // Debug
-    std::string getDebugStream();
-
 private:
     Bus& bus;
     uint8_t* memory;
 
     uint8_t* evalAddress(uint16_t index);
-
-    std::stringstream debugStream;
 };
 

@@ -2,99 +2,6 @@
 #include "Nes6502.h"
 #include "Bus.h"
 
-#include <stdio.h>
-#include <iomanip>
-#include <sstream>
-#include "SDL_log.h"
-
-#define LOG_OPCODE 1
-
-// TODO: Centralize this logging logic to single file
-#if defined(DEBUG) && LOG_OPCODE == 1
-#define logOp(function, state, arg) logOpDebug(function, state, arg)
-#else
-#define logOp(function, state, arg) 
-#endif
-
-static std::string toHex(int val, int width)
-{
-    std::stringstream hex;
-    hex << std::setw(width) << std::setfill('0') << std::uppercase << std::hex << val;
-    return hex.str();
-}
-
-void logOpDebug(char* function, State6502& state, Argument arg)
-{
-    std::stringstream debug;
-
-    debug << toHex(state.PC - instructionSize[arg.addrMode], 4) << "  ";
-
-    std::stringstream rawOpCode;
-    for (int i = 0; i < instructionSize[arg.addrMode]; i++)
-    {
-        rawOpCode << toHex((int) arg.rawInstr[i], 2) << " ";
-    }
-    debug << std::setw(10) << std::left << rawOpCode.str();
-
-    debug << std::right;
-
-    std::stringstream addrStr;
-    addrStr << (function + 1) << " ";
-    switch (arg.addrMode)
-    {
-    case IMP:   // Implied and NOP have no args
-    case NADR:
-        break;
-    case ACC:
-        addrStr << "A";
-        break;
-    case REL:
-        //addrStr << "$" << toHex(arg.rawInstr[1], 2) << ", PC";
-        addrStr << "$" << toHex(arg.address, 4);
-        break;
-    case IMM:
-        addrStr << "#$" << toHex(arg.value, 2);
-        break;
-    case ZP:
-        addrStr << "$" << toHex(arg.rawInstr[1], 2);
-        break;
-    case ZPX:
-        addrStr << "$" << toHex(arg.rawInstr[1], 2) << ",X";
-        break;
-    case ZPY:
-        addrStr << "$" << toHex(arg.rawInstr[1], 2) << ",Y";
-        break;
-    case ABS:
-        addrStr << "$" << toHex(arg.rawInstr[2], 2) << toHex(arg.rawInstr[1], 2);
-        break;
-    case ABSX:
-        addrStr << "$" << toHex(arg.rawInstr[2], 2) << toHex(arg.rawInstr[1], 2) << ",X";
-        break;
-    case ABSY:
-        addrStr << "$" << toHex(arg.rawInstr[2], 2) << toHex(arg.rawInstr[1], 2) << ",Y";
-        break;
-    case IND:
-        addrStr << "$(" << toHex(arg.rawInstr[2], 2) << toHex(arg.rawInstr[1], 2) << ")";
-        break;
-    case INDX:
-        addrStr << "$(" << toHex(arg.rawInstr[1], 2) << ",X)";
-        break;
-    case INDY:
-        addrStr << "$(" << toHex(arg.rawInstr[1], 2) << "),Y";
-        break;
-    }
-    debug << std::setw(31) << std::left << addrStr.str();
-
-    debug << " A:" << toHex(state.A, 2)
-          << " X:" << toHex(state.X, 2)
-          << " Y:" << toHex(state.Y, 2)
-          << " P:" << toHex(state.P.toByte(), 2)
-          << " SP:" << toHex(state.SP, 2)
-          /*<< " CPUC:" << bus.cpuCycleCount()*/;
-
-    printf("%s\n", debug.str().c_str());
-}
-
 void setZandN(State6502& state, uint8_t result)
 {
     if (result == 0) { state.P.Z = 1; }
@@ -106,7 +13,6 @@ void setZandN(State6502& state, uint8_t result)
 
 void fADC(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t value = input.getValue(memory);
     uint16_t result = value + state.A + state.P.C;
     if (result > 0xFF) { state.P.C = 1; }
@@ -123,7 +29,6 @@ void fADC(State6502& state, Memory& memory, Argument input)
 
 void fAND(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t result = state.A & input.getValue(memory);
 
     setZandN(state, result);
@@ -133,7 +38,6 @@ void fAND(State6502& state, Memory& memory, Argument input)
 
 void fASL(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (input.addrMode == ABSX) { memory.read(input.address); }
     uint8_t value = input.getValue(memory);
     uint8_t result = value << 1;
@@ -151,7 +55,6 @@ void fASL(State6502& state, Memory& memory, Argument input)
 
 void fBCC(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (state.P.C == 0)
     {
         memory.read(state.PC);
@@ -161,7 +64,6 @@ void fBCC(State6502& state, Memory& memory, Argument input)
 
 void fBCS(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (state.P.C == 1)
     {
         memory.read(state.PC);
@@ -171,7 +73,6 @@ void fBCS(State6502& state, Memory& memory, Argument input)
 
 void fBEQ(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (state.P.Z == 1)
     {
         memory.read(state.PC);
@@ -181,7 +82,6 @@ void fBEQ(State6502& state, Memory& memory, Argument input)
 
 void fBIT(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t value = input.getValue(memory);
     
     if ((state.A & value) == 0) { state.P.Z = 1; }
@@ -192,7 +92,6 @@ void fBIT(State6502& state, Memory& memory, Argument input)
 
 void fBMI(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (state.P.N == 1)
     {
         memory.read(state.PC);
@@ -202,7 +101,6 @@ void fBMI(State6502& state, Memory& memory, Argument input)
 
 void fBNE(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (state.P.Z == 0)
     {
         memory.read(state.PC);
@@ -212,7 +110,6 @@ void fBNE(State6502& state, Memory& memory, Argument input)
 
 void fBPL(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (state.P.N == 0)
     {
         memory.read(state.PC);
@@ -222,7 +119,6 @@ void fBPL(State6502& state, Memory& memory, Argument input)
 
 void fBRK(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (state.P.I == 1) { return; }
 
     // TODO: unsure if PC is -1 for interrupt like JSR
@@ -240,7 +136,6 @@ void fBRK(State6502& state, Memory& memory, Argument input)
 
 void fBVC(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (state.P.V == 0)
     {
         memory.read(state.PC);
@@ -250,7 +145,6 @@ void fBVC(State6502& state, Memory& memory, Argument input)
 
 void fBVS(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (state.P.V == 1)
     {
         memory.read(state.PC);
@@ -260,32 +154,27 @@ void fBVS(State6502& state, Memory& memory, Argument input)
 
 void fCLC(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     state.P.C = 0;
 }
 
 void fCLD(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     state.P.D = 0;
 }
 
 void fCLI(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     state.P.I = 0;
 }
 
 void fCLV(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     state.P.V = 0;
 }
 
 // TODO: signed comparison?
 void fCMP(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t value = input.getValue(memory);
     uint8_t result = state.A - value;
     if (state.A >= value) { state.P.C = 1; }
@@ -295,7 +184,6 @@ void fCMP(State6502& state, Memory& memory, Argument input)
 
 void fCPX(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t value = input.getValue(memory);
     uint8_t result = state.X - value;
     if (state.X >= value) { state.P.C = 1; }
@@ -305,7 +193,6 @@ void fCPX(State6502& state, Memory& memory, Argument input)
 
 void fCPY(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t value = input.getValue(memory);
     uint8_t result = state.Y - value;
     if (state.Y >= value) { state.P.C = 1; }
@@ -315,7 +202,6 @@ void fCPY(State6502& state, Memory& memory, Argument input)
 
 void fDEC(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (input.addrMode == ABSX) { memory.read(input.address); }
     uint8_t result = input.getValue(memory) - 1;
 
@@ -327,7 +213,6 @@ void fDEC(State6502& state, Memory& memory, Argument input)
 
 void fDEX(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t result = state.X - 1;
 
     setZandN(state, result);
@@ -337,7 +222,6 @@ void fDEX(State6502& state, Memory& memory, Argument input)
 
 void fDEY(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t result = state.Y - 1;
 
     setZandN(state, result);
@@ -347,7 +231,6 @@ void fDEY(State6502& state, Memory& memory, Argument input)
 
 void fEOR(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t result = state.A ^ input.getValue(memory);
 
     setZandN(state, result);
@@ -357,7 +240,6 @@ void fEOR(State6502& state, Memory& memory, Argument input)
 
 void fINC(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (input.addrMode == ABSX) { memory.read(input.address); }
     uint8_t result = input.getValue(memory) + 1;
 
@@ -369,7 +251,6 @@ void fINC(State6502& state, Memory& memory, Argument input)
 
 void fINX(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t result = state.X + 1;
 
     setZandN(state, result);
@@ -379,7 +260,6 @@ void fINX(State6502& state, Memory& memory, Argument input)
 
 void fINY(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t result = state.Y + 1;
 
     setZandN(state, result);
@@ -389,15 +269,11 @@ void fINY(State6502& state, Memory& memory, Argument input)
 
 void fJMP(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
-
     state.PC = input.address;
 }
 
 void fJSR(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
-
     memory.read(state.SP);
     memory.push(((state.PC - 1) & 0xFF00) >> 8);
     memory.push((state.PC - 1) & 0x00FF);
@@ -406,7 +282,6 @@ void fJSR(State6502& state, Memory& memory, Argument input)
 
 void fLDA(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t result = input.getValue(memory);
 
     setZandN(state, result);
@@ -416,7 +291,6 @@ void fLDA(State6502& state, Memory& memory, Argument input)
 
 void fLDX(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t result = input.getValue(memory);
 
     setZandN(state, result);
@@ -426,7 +300,6 @@ void fLDX(State6502& state, Memory& memory, Argument input)
 
 void fLDY(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t result = input.getValue(memory);
 
     setZandN(state, result);
@@ -436,7 +309,6 @@ void fLDY(State6502& state, Memory& memory, Argument input)
 
 void fLSR(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (input.addrMode == ABSX) { memory.read(input.address); }
     uint8_t value = input.getValue(memory);
     uint8_t result = value >> 1;
@@ -454,12 +326,10 @@ void fLSR(State6502& state, Memory& memory, Argument input)
 
 void fNOP(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
 }
 
 void fORA(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t value = input.getValue(memory);
     uint8_t result = state.A | value;
 
@@ -470,19 +340,16 @@ void fORA(State6502& state, Memory& memory, Argument input)
 
 void fPHA(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     memory.push(state.A);
 }
 
 void fPHP(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     memory.push(state.P.toByte() | 0x30); // Set B and padding flag
 }
 
 void fPLA(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     memory.read(state.SP & 0x00FF);
     state.A = memory.pop();
     setZandN(state, state.A);
@@ -490,14 +357,12 @@ void fPLA(State6502& state, Memory& memory, Argument input)
 
 void fPLP(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     memory.read(state.SP & 0x00FF);
     state.P.set(memory.pop());
 }
 
 void fROL(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (input.addrMode == ABSX) { memory.read(input.address); }
     uint8_t value = input.getValue(memory);
     uint8_t result = (value << 1) | state.P.C;
@@ -515,7 +380,6 @@ void fROL(State6502& state, Memory& memory, Argument input)
 
 void fROR(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     if (input.addrMode == ABSX) { memory.read(input.address); }
     uint8_t value = input.getValue(memory);
     uint8_t result = (value >> 1) | (state.P.C << 7);
@@ -533,8 +397,6 @@ void fROR(State6502& state, Memory& memory, Argument input)
 
 void fRTI(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
-
     memory.read(state.SP);
     state.P.set(memory.pop());
 
@@ -545,7 +407,6 @@ void fRTI(State6502& state, Memory& memory, Argument input)
 
 void fRTS(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t pcLSB = memory.pop();
     uint8_t pcMSB = memory.pop();
 
@@ -560,7 +421,6 @@ void fRTS(State6502& state, Memory& memory, Argument input)
 
 void fSBC(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     uint8_t value = input.getValue(memory);
     uint16_t result = state.A - value - (1 - state.P.C);
     if (result > 0xFF) { state.P.C = 0; }
@@ -576,26 +436,21 @@ void fSBC(State6502& state, Memory& memory, Argument input)
 
 void fSEC(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     state.P.C = 1;
 }
 
 void fSED(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     state.P.D = 1;
 }
 
 void fSEI(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     state.P.I = 1;
 }
 
 void fSTA(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
-
     input.pageWrap = false; // "oops" cycle doesn't happen with STA, STX, STY
     if (input.addrMode == ABSX || input.addrMode == ABSY || input.addrMode == INDY)
     {
@@ -606,8 +461,6 @@ void fSTA(State6502& state, Memory& memory, Argument input)
 
 void fSTX(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
-
     input.pageWrap = false; // "oops" cycle doesn't happen with STA, STX, STY
     if (input.addrMode == ABSX || input.addrMode == ABSY || input.addrMode == INDY)
     {
@@ -618,8 +471,6 @@ void fSTX(State6502& state, Memory& memory, Argument input)
 
 void fSTY(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
-
     input.pageWrap = false; // "oops" cycle doesn't happen with STA, STX, STY
     if (input.addrMode == ABSX || input.addrMode == ABSY || input.addrMode == INDY)
     {
@@ -630,41 +481,35 @@ void fSTY(State6502& state, Memory& memory, Argument input)
 
 void fTAX(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     state.X = state.A;
     setZandN(state, state.X);
 }
 
 void fTAY(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     state.Y = state.A;
     setZandN(state, state.Y);
 }
 
 void fTSX(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     state.X = state.SP;
     setZandN(state, state.X);
 }
 
 void fTXA(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     state.A = state.X;
     setZandN(state, state.A);
 }
 
 void fTXS(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     state.SP = state.X;
 }
 
 void fTYA(State6502& state, Memory& memory, Argument input)
 {
-    logOp(__FUNCTION__, state, input);
     state.A = state.Y;
     setZandN(state, state.A);
 }

@@ -52,9 +52,8 @@ void Nes6502::emulate6502()
         executeOpCode(instr);
         bus.finalizeCPUInstruction();
 
-        // DEBUG OUTPUT
-        // TODO: Centralize to Logging 
-        std::cout << bus.memory().getDebugStream();
+        // Debug
+        bus.debug().flushAll();
     }
 }
 
@@ -63,6 +62,7 @@ void Nes6502::executeOpCode(uint8_t instr[])
 {
     state.PC += instructionSize[addressingMode[instr[0]]];
     Argument arg = obtainArgument(instr);
+    logOp(arg);
     getInstrFunc(instr[0])(state, bus.memory(), arg);
 }
 
