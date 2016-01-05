@@ -2,7 +2,8 @@
 
 #include <stdint.h>
 
-#define iNesHeaderConst "\x4E\x45\x53\x1A"    // "NES^Z"
+#define INES_HEADER_SIZE    16
+#define iNesHeaderConst     "\x4E\x45\x53\x1A"    // "NES^Z"
 
 struct iNesHeader
 {

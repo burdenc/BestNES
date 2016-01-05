@@ -1,6 +1,8 @@
+#include "Nes6502.h"
 #include "Memory.h"
 #include "Game.h"
 #include "Bus.h"
+#include "PRG.h"
 
 Memory::Memory(Bus& bus) : bus(bus), memory(new uint8_t[MEMORY_SIZE])
 {
@@ -63,7 +65,7 @@ uint8_t* Memory::evalAddress(uint16_t address)
     // PRG ROM Redirect
     if (0x8000 <= address && address <= 0xFFFF)
     {
-        return Game::getGame().getPRG().getPtr(address - 0x8000);
+        return bus.game().getPRG().getPtr(address - 0x8000);
     }
 
     // RAM Mirroring 0x000 - 0x7FF to 0x800, 0x1000, 0x1800

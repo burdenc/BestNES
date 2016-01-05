@@ -18,6 +18,12 @@
 #define logOp(arg) 
 #endif
 
+#if defined(DEBUG) && LOG_GAME == 1
+#define logGame(format, ...) printf(format, __VA_ARGS__)
+#else
+#define logOp(arg)
+#endif
+
 #if defined(DEBUG) && LOG_MEMORY == 1
 #define logMemory(op,value,index) bus.debug().logMemoryDebug(op,value,index)
 #else

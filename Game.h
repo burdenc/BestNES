@@ -2,22 +2,27 @@
 
 #include <string>
 #include "iNes.h"
-#include "PRG.h"
+
+class PRG;
+class CHR;
+class Bus;
 
 class Game
 {
 public:
-    static Game& getGame();
+    Game(Bus& bus);
+    ~Game();
     bool loadGame(std::string path);
     PRG& getPRG();
+    CHR& getCHR();
+
+    static const size_t TRAINER_SIZE = 512;
 
 private:
-    Game();
-    ~Game();
-
-    static Game* gameInstance;
     iNesHeader header;
     PRG* prgROM;
-    //CHR chrROM;
+    CHR* chrROM;
+
+    Bus& bus;
 };
 

@@ -77,16 +77,19 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Bus.cpp" />
+    <ClCompile Include="CHR.cpp" />
     <ClCompile Include="Debug.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Memory.cpp" />
     <ClCompile Include="Nes6502.cpp" />
     <ClCompile Include="OpCode.cpp" />
+    <ClCompile Include="PPU.cpp" />
     <ClCompile Include="PRG.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bus.h" />
+    <ClInclude Include="CHR.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="Debug.h" />
@@ -95,6 +98,7 @@
     <ClInclude Include="Memory.h" />
     <ClInclude Include="Nes6502.h" />
     <ClInclude Include="OpCode.h" />
+    <ClInclude Include="PPU.h" />
     <ClInclude Include="PRG.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

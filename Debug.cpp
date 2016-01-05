@@ -1,5 +1,6 @@
 #include "Debug.h"
 #include "Bus.h"
+#include "Nes6502.h"
 
 #include <iostream>
 #include <iomanip>

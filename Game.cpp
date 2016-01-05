@@ -1,18 +1,22 @@
 #include "Game.h"
+#include "Bus.h"
 #include "iNes.h"
+#include "CHR.h"
 #include "PRG.h"
-#include "SDL_log.h"
+#include "Debug.h"
 
 #include <bitset>
 #include <iostream>
 #include <fstream>
 
-Game::Game()
+Game::Game(Bus& bus) : bus(bus)
 {
 }
 
 Game::~Game()
 {
+    delete[] prgROM;
+    delete[] chrROM;
 }
 
 bool Game::loadGame(std::string path)
@@ -38,15 +42,23 @@ bool Game::loadGame(std::string path)
 
     //TODO: Read in the other crap
     uint8_t *rawPrgROM = new uint8_t[header.prgPages * PRG::BANK_SIZE];
-    gameIn.seekg(16);
-    if (header.trainerPresent) { gameIn.seekg(512); }
+    uint8_t *rawChrROM = new uint8_t[header.chrPages * CHR::BANK_SIZE];
+
+    gameIn.seekg(INES_HEADER_SIZE);
+    if (header.trainerPresent)
+    {
+        gameIn.seekg(TRAINER_SIZE, gameIn.cur);
+    }
 
     gameIn.read((char*) rawPrgROM, header.prgPages * PRG::BANK_SIZE);
     prgROM = new PRG(header.prgPages, rawPrgROM);
 
-    SDL_Log("PRG ROM Size: %d\n", (int) header.prgPages);
-    SDL_Log("CHR ROM Size: %d\n", (int) header.chrPages);
-    SDL_Log("Trainer Present: %d\n", header.trainerPresent);
+    gameIn.read((char*) rawChrROM, header.chrPages * CHR::BANK_SIZE);
+    chrROM = new CHR(header.chrPages, rawChrROM);
+
+    logGame("PRG ROM Size: %d\n", (int) header.prgPages);
+    logGame("CHR ROM Size: %d\n", (int) header.chrPages);
+    logGame("Trainer Present: %d\n", header.trainerPresent);
 }
 
 PRG& Game::getPRG()
@@ -54,8 +66,7 @@ PRG& Game::getPRG()
     return *prgROM;
 }
 
-Game& Game::getGame()
+CHR& Game::getCHR()
 {
-    static Game instance;
-    return instance;
+    return *chrROM;
 }
