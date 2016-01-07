@@ -21,7 +21,19 @@
 #if defined(DEBUG) && LOG_GAME == 1
 #define logGame(format, ...) printf(format, __VA_ARGS__)
 #else
-#define logOp(arg)
+#define logOp(format, ...)
+#endif
+
+#if defined(DEBUG) && LOG_PPU == 1
+#define logPPU(str) bus.debug().logPPUDebug(str)
+#else
+#define logPPU(str)
+#endif
+
+#if defined(DEBUG) && LOG_MMIO == 1
+#define logMemoryReg(op,reg,value) bus.debug().logMemoryRegDebug(op,reg,value)
+#else
+#define logMemoryReg(op,reg,value) 
 #endif
 
 #if defined(DEBUG) && LOG_MEMORY == 1
@@ -39,7 +51,9 @@ public:
     ~Debug();
 
     void logOpDebug(Argument arg);
+    void logPPUDebug(const char* str);
     void logMemoryDebug(const char* op, uint8_t value, uint16_t index);
+    void logMemoryRegDebug(const char* op, const char* reg, uint8_t value);
 
     void flushAll();
 

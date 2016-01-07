@@ -23,14 +23,44 @@ struct Sprite
     uint8_t x;
 };
 
+union PPUSTATUS_reg
+{
+    struct ppustatus_bits {
+        uint8_t l : 5; // padding/latch
+        uint8_t O : 1; // sprite overflow
+        uint8_t S : 1; // sprite 0 hit
+        uint8_t V : 1; // v-blank
+    } bits;
+    uint8_t byte;
+};
+
 class PPU
 {
 public:
+    uint8_t registerLatch; // Used by memory IO, how PPU register communicates with memory controller
+
     PPU(Bus& bus);
     ~PPU();
 
     void init();
     void displayFrame();
+
+    // Registers
+    // Write
+    void rPPUCTRL(uint8_t value);
+    void rPPUMASK(uint8_t value);
+    void rPPUSTATUS(uint8_t value);
+    void rOAMADDR(uint8_t value);
+    void rOAMDATA_write(uint8_t value);
+    void rPPUSCROLL(uint8_t value);
+    void rPPUADDR(uint8_t value);
+    void rPPUDATA_write(uint8_t value);
+    void rOAMDMA(uint8_t value);
+
+    // Read
+    uint8_t rPPUSTATUS();
+    uint8_t rOAMDATA_read();
+    uint8_t rPPUDATA_read();
 
 private:
     static const size_t VRAM_SIZE = 0x4000;
@@ -44,6 +74,8 @@ private:
     Bus& bus;
     uint8_t* VRAM;
     uint8_t* OAM;
+
+    PPUSTATUS_reg ppustatus;
 
     SDL_Window* window = NULL;
     SDL_Surface* windowSurface = NULL;

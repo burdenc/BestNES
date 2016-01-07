@@ -2,6 +2,7 @@
 #include "Config.h"
 #include "Bus.h"
 #include "Game.h"
+#include "Debug.h"
 
 #include <bitset>
 #include <iostream>
@@ -121,8 +122,81 @@ void PPU::loadPatterns()
     }
 }
 
-
+void PPU::rPPUCTRL(uint8_t value)
 {
+    logMemoryReg("WRITE", "PPUCTRL", value);
+    logPPU("PPUCTRL NOT IMPLEMENTED");
+}
+
+void PPU::rPPUMASK(uint8_t value)
+{
+    logMemoryReg("WRITE", "PPUMASK", value);
+    logPPU("PPUMASK NOT IMPLEMENTED");
+}
+
+// TODO: clear/set flags based on PPU functionality
+uint8_t PPU::rPPUSTATUS()
+{
+    uint8_t value = ppustatus.byte;
+    logMemoryReg("READ", "PPUSTATUS", value);
+    logPPU("PPUSTATUS NOT IMPLEMENTED");
+
+    ppustatus.bits.V = 0;
+    return value;
+}
+
+void PPU::rOAMADDR(uint8_t value)
+{
+    logMemoryReg("WRITE", "OAMADDR", value);
+    logPPU("OAMADDR NOT IMPLEMENTED");
+}
+
+void PPU::rOAMDATA_write(uint8_t value)
+{
+    logMemoryReg("WRITE", "OAMDATA", value);
+    logPPU("OAMDATA NOT IMPLEMENTED");
+}
+
+uint8_t PPU::rOAMDATA_read()
+{
+    uint8_t value = 0;
+    logMemoryReg("READ", "OAMDATA", value);
+    logPPU("OAMDATA NOT IMPLEMENTED");
+    return value;
+}
+
+void PPU::rPPUSCROLL(uint8_t value)
+{
+    logMemoryReg("WRITE", "PPUSCROLL", value);
+    logPPU("PPUSCROLL NOT IMPLEMENTED");
+}
+
+void PPU::rPPUADDR(uint8_t value)
+{
+    logMemoryReg("WRITE", "PPUADDR", value);
+    logPPU("PPUADDR NOT IMPLEMENTED");
+}
+
+void PPU::rPPUDATA_write(uint8_t value)
+{
+    logMemoryReg("WRITE", "PPUDATA", value);
+    logPPU("PPUDATA NOT IMPLEMENTED");
+}
+
+uint8_t PPU::rPPUDATA_read()
+{
+    uint8_t value = 0;
+    logMemoryReg("READ", "PPUDATA", value);
+    logPPU("PPUDATA NOT IMPLEMENTED");
+    return value;
+}
+
+void PPU::rOAMDMA(uint8_t value)
+{
+    logMemoryReg("WRITE", "OAMDMA", value);
+    logPPU("OAMDMA NOT IMPLEMENTED");
+}
+
 
 // Get raw pixel value from color index
 uint32_t PPU::getColor(size_t index)

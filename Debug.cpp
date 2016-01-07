@@ -86,11 +86,25 @@ void Debug::logOpDebug(Argument arg)
                   << " CPUC:" << bus.cpuCycleCount() - size;
 }
 
+void Debug::logPPUDebug(const char* str)
+{
+    memoryDebugStream << std::setw(6) << ""
+                      << std::setw(1) << std::string(str) << std::endl;
+}
+
 void Debug::logMemoryDebug(const char* op, uint8_t value, uint16_t index)
 {
     memoryDebugStream << std::setw(6)  << ""
                       << std::setw(10) << std::left << std::string(op)
                       << "$" << toHex(index, 4) << " = " << toHex(value, 2)
+                      << std::endl;
+}
+
+void Debug::logMemoryRegDebug(const char* op, const char* reg, uint8_t value)
+{
+    memoryDebugStream << std::setw(6)  << ""
+                      << std::setw(10) << std::left << std::string(op)
+                      << std::string(reg) << " = " << toHex(value, 2)
                       << std::endl;
 }
 
@@ -107,7 +121,7 @@ void Debug::flushAll()
     debug = memoryDebug();
     if (!debug.empty())
     {
-        std::cout << debug << std::endl;
+        std::cout << debug;
     }
 }
 

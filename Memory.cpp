@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "Bus.h"
 #include "PRG.h"
+#include "PPU.h"
 
 Memory::Memory(Bus& bus) : bus(bus), memory(new uint8_t[MEMORY_SIZE])
 {
@@ -19,20 +20,26 @@ Memory::~Memory()
 //       ex: 0x00FF,X (X = 1) ===> READ 0x0000 (thrown away), READ 0x0100
 void Memory::write(uint16_t index, uint8_t value)
 {
-    logMemory("WRITE", value, index);
+    if (writeRegister(index, value)) { return; }
+
+    // No register mapped, do normal write
     uint8_t* address = evalAddress(index);
 
     *address = value;
 
+    logMemory("WRITE", value, index);
     bus.cpuCycle();
 }
 
 uint8_t Memory::read(uint16_t index)
 {
+    uint8_t value;
+    if (readRegister(index, value)) { return value; }
+
+    // No register mapped, do normal read
     uint8_t* address = evalAddress(index);
 
     logMemory("READ", *address, index);
-
     bus.cpuCycle();
     return *address;
 }
@@ -59,7 +66,39 @@ uint8_t Memory::pop()
     return result;
 }
 
-// Evaluate real address based on NES memory mapping
+// Handle register mapping through memory
+bool Memory::writeRegister(uint16_t address, uint8_t value)
+{
+    switch (address)
+    {
+    default: return false; // No write register for this address
+    case PPUCTRL: bus.ppu().rPPUCTRL(value); break;
+    case PPUMASK: bus.ppu().rPPUMASK(value); break;
+    case OAMADDR: bus.ppu().rOAMADDR(value); break;
+    case OAMDATA: bus.ppu().rOAMDATA_write(value); break;
+    case PPUSCROLL: bus.ppu().rPPUSCROLL(value); break;
+    case PPUADDR: bus.ppu().rPPUADDR(value); break;
+    case PPUDATA: bus.ppu().rPPUDATA_write(value); break;
+    case OAMDMA: bus.ppu().rOAMDMA(value); break;
+    }
+
+    return true;
+}
+
+bool Memory::readRegister(uint16_t address, uint8_t& value)
+{
+    switch (address)
+    {
+    default: return false;
+    case PPUSTATUS: value = bus.ppu().rPPUSTATUS(); break;
+    case OAMDATA: value = bus.ppu().rOAMDATA_read(); break;
+    case PPUDATA: value = bus.ppu().rPPUDATA_read(); break;
+    }
+
+    return true;
+}
+
+// Evaluate real address based on NES memory mapping/mirroring
 uint8_t* Memory::evalAddress(uint16_t address)
 {
     // PRG ROM Redirect
