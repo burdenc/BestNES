@@ -1,4 +1,5 @@
 #include "PPU.h"
+#include "Config.h"
 #include "Bus.h"
 #include "Game.h"
 
@@ -27,8 +28,8 @@ PPU::PPU(Bus& bus) : bus(bus), VRAM(new uint8_t[VRAM_SIZE]), OAM(new uint8_t[OAM
         "NES Emulator",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        SCREEN_WIDTH,
-        SCREEN_HEIGHT,
+        SCREEN_WIDTH * WINDOW_SCALE,
+        SCREEN_HEIGHT * WINDOW_SCALE,
         SDL_WINDOW_OPENGL
         );
 
@@ -37,122 +38,8 @@ PPU::PPU(Bus& bus) : bus(bus), VRAM(new uint8_t[VRAM_SIZE]), OAM(new uint8_t[OAM
     }
 
     windowSurface = SDL_GetWindowSurface(window);
-
-    // Test
-    /*int ret = 0;
-    SDL_Surface* img = SDL_CreateRGBSurface(0, 128, 128, 8, 0, 0, 0, 0);
-    if (img == NULL)
-    {
-        std::cout << "Couldn't create surface" << std::endl;
-        std::cout << SDL_GetError();
-    }
-    SDL_Palette* p = SDL_AllocPalette(256);
-    if (SDL_SetPaletteColors(p, palette, 0, NUM_COLORS) < 0)
-    {
-        std::cout << "Couldn't set palette colors" << std::endl;
-    }*/
-    //std::cout << "Bits per pixel: " << img->format->BitsPerPixel << std::endl;
-    //SDL_ConvertSurfaceFormat(img, SDL_PIXELTYPE_INDEX1, 0);
-    //SDL_PixelFormat* f = SDL_AllocFormat(SDL_PIXELTYPE_INDEX1);
-    //f->palette = p;
-    //SDL_ConvertSurface(windowSurface, f, 0);
-    /*if (SDL_SetSurfacePalette(img, p) != 0)
-    {
-        std::cout << "Couldn't set palette to surface" << std::endl;
-        std::cout << SDL_GetError();
-    }*/
-
-    /*for (int j = 0; j < NUM_COLORS; j++)
-    {
-        SDL_LockSurface(img);
-        Uint8* pixels = (Uint8*)img->pixels;
-        for (int i = 0; i < 128 * 128; i++)
-            pixels[i] = j;
-        SDL_UnlockSurface(img);
-        SDL_BlitSurface(img, NULL, windowSurface, NULL);
-
-        SDL_UpdateWindowSurface(window);
-    }*/
+    frameSurface = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0, 0, 0, 255);
 }
-
-void PPU::init()
-{
-    loadPatterns();
-
-    /*SDL_Surface* patt = patterns[0];
-    SDL_LockSurface(patt);
-    Uint8* pixels = (Uint8*)patt->pixels;
-    for (int i = 0; i < 8 * 8; i++)
-    *pixels++ = 0x16;
-    SDL_UnlockSurface(patt);*/
-
-    SDL_Rect srcRect;
-    srcRect.x = -32;
-    srcRect.y = 0;
-    srcRect.h = 32;
-    srcRect.w = 32;
-    for (int i = 0; i < CHR::NUM_PATTERNS; i++)
-    {
-        srcRect.x += 32;
-        if (srcRect.x >= SCREEN_WIDTH) { srcRect.x = 0; srcRect.y += 32; }
-        if (srcRect.y >= SCREEN_HEIGHT) { srcRect.y = 0; }
-        if (SDL_BlitScaled(SDL_ConvertSurface(patterns[i], windowSurface->format, 0), NULL, windowSurface, &srcRect) != 0)
-        {
-            std::cout << "Blit failed: " << std::endl;
-            std::cout << SDL_GetError();
-        }
-        if (SDL_UpdateWindowSurface(window) != 0)
-        {
-            std::cout << "Update failed: " << std::endl;
-            std::cout << SDL_GetError();
-        }
-    }
-}
-
-void PPU::loadPatterns()
-{
-    SDL_Palette* p = SDL_AllocPalette(256);
-    if (SDL_SetPaletteColors(p, palette, 0, NUM_COLORS) < 0)
-    {
-        std::cout << "Couldn't set palette colors" << std::endl;
-    }
-
-    std::bitset<8> lower, upper;
-    for (int i = 0; i < CHR::NUM_PATTERNS; i++)
-    {
-        patterns[i] = SDL_CreateRGBSurface(0, CHR::PATTERN_HEIGHT, CHR::PATTERN_WIDTH, 8, 0, 0, 0, 0);
-        SDL_Surface* patt = patterns[i];
-        SDL_LockSurface(patt);
-
-        SDL_ConvertSurfaceFormat(patt, SDL_PIXELTYPE_INDEX1, 0);
-        //SDL_ConvertSurfaceFormat(patt, SDL_PIXELFORMAT_INDEX1, 0);
-
-        if (SDL_SetSurfacePalette(patt, p) != 0)
-        {
-            std::cout << "Couldn't set palette to surface" << std::endl;
-            std::cout << SDL_GetError();
-        }
-
-        Uint8* pixels = (Uint8*) patt->pixels;
-        for (int j = 0; j < CHR::PATTERN_HEIGHT; j++)
-        {
-            uint8_t lval = *bus.game().getCHR().getPtr((i * 0x10) + j), uval = *bus.game().getCHR().getPtr((i * 0x10) + CHR::PATTERN_HEIGHT + j);
-            lower = *bus.game().getCHR().getPtr((i * 0x10) + j);
-            upper = *bus.game().getCHR().getPtr((i * 0x10) + CHR::PATTERN_HEIGHT + j);
-
-            for (int k = CHR::PATTERN_WIDTH - 1; k >= 0; k--)
-            {
-                uint8_t val = (upper[k] << 1) | lower[k];
-                uint8_t lowerVal = lower[k], upperVal = upper[k];
-                *pixels = val;
-                pixels++;
-            }
-        }
-
-        SDL_UnlockSurface(patt);
-    }
-}
-
 
 PPU::~PPU()
 {
@@ -163,6 +50,85 @@ PPU::~PPU()
     {
         SDL_FreeSurface(patterns[i]);
     }
+}
+
+void PPU::init()
+{
+    loadPatterns();
+
+    ppustatus.byte = 0xA0; // Power up state
+
+    SDL_Rect srcRect;
+    srcRect.x = -8;
+    srcRect.y = 0;
+    srcRect.h = 8;
+    srcRect.w = 8;
+    for (int i = 0; i < CHR::NUM_PATTERNS; i++)
+    {
+        srcRect.x += 8;
+        if (srcRect.x >= SCREEN_WIDTH) { srcRect.x = 0; srcRect.y += 8; }
+        if (srcRect.y >= SCREEN_HEIGHT) { srcRect.y = 0; }
+        if (SDL_BlitSurface(patterns[i], NULL, frameSurface, &srcRect) != 0)
+        {
+            std::cout << "Blit failed: " << SDL_GetError() << std::endl;
+        }
+    }
+
+    displayFrame();
+}
+
+void PPU::displayFrame()
+{
+    /*SDL_Surface* optimizedSurface = SDL_ConvertSurface(frameSurface, windowSurface->format, 0);
+    if (optimizedSurface == NULL)
+    {
+        std::cout << "Convert failed: " << SDL_GetError() << std::endl;
+    }*/
+
+    // Automatically scale frame buffer to window size
+    if (SDL_BlitScaled(frameSurface, NULL, windowSurface, NULL) != 0)
+    {
+        std::cout << "Blit failed: " << SDL_GetError() << std::endl;
+    }
+
+    SDL_UpdateWindowSurface(window);
+}
+
+void PPU::loadPatterns()
+{
+    std::bitset<8> lower, upper;
+    for (int i = 0; i < CHR::NUM_PATTERNS; i++)
+    {
+        patterns[i] = SDL_CreateRGBSurface(0, CHR::PATTERN_HEIGHT, CHR::PATTERN_WIDTH, 32, 0, 0, 0, 255);
+        SDL_Surface* patt = patterns[i];
+        SDL_LockSurface(patt);
+
+        uint32_t* pixels = (uint32_t*) patt->pixels;
+        for (int j = 0; j < CHR::PATTERN_HEIGHT; j++)
+        {
+            lower = *bus.game().getCHR().getPtr((i * 0x10) + j);
+            upper = *bus.game().getCHR().getPtr((i * 0x10) + CHR::PATTERN_HEIGHT + j);
+
+            for (int k = CHR::PATTERN_WIDTH - 1; k >= 0; k--)
+            {
+                uint8_t val = (upper[k] << 1) | lower[k];
+                *pixels = getColor(val);
+                pixels++;
+            }
+        }
+
+        SDL_UnlockSurface(patt);
+    }
+}
+
+
+{
+
+// Get raw pixel value from color index
+uint32_t PPU::getColor(size_t index)
+{
+    SDL_Color* color = &palette[index];
+    return SDL_MapRGBA(frameSurface->format, color->r, color->g, color->b, color->a);
 }
 
 // Value = (R << 6) | (G << 3) | B, 3 bits for each color

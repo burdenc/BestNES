@@ -30,6 +30,7 @@ public:
     ~PPU();
 
     void init();
+    void displayFrame();
 
 private:
     static const size_t VRAM_SIZE = 0x4000;
@@ -46,9 +47,11 @@ private:
 
     SDL_Window* window = NULL;
     SDL_Surface* windowSurface = NULL;
+    SDL_Surface* frameSurface = NULL;
 
     SDL_Surface* patterns[CHR::NUM_PATTERNS];
 
     void loadPatterns();
+    inline uint32_t getColor(size_t index);
 };
 

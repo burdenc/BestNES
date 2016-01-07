@@ -1,5 +1,8 @@
 #pragma once
 
+// VIDEO CONFIG
+#define WINDOW_SCALE 3
+
 // DEBUGGING CONFIG
 
 //#define DEBUG
